@@ -8,6 +8,7 @@ This module provides a class that handles the SPEC equilibrium code.
 
 import logging
 import os.path
+import tempfile
 
 import numpy as np
 
@@ -161,7 +162,7 @@ class Spec(Optimizable):
         logger.info('Calling update_resolution(mpol={}, ntor={})'.format(mpol, ntor))
         self.nml.update_resolution(mpol, ntor)
         
-    def run(self):
+    def run(self, keep=False):
         """
         Run SPEC, if needed.
         """
@@ -205,10 +206,18 @@ class Spec(Optimizable):
         self.nml['physicslist']['rac'] = []
         self.nml['physicslist']['zas'] = []
 
-        filename = 'spec{:05}.sp'.format(self.counter)
-        logger.info("Running SPEC using filename " + filename)
-        self.results = self.nml.run(spec_command=self.exe,
-                                    filename=filename, force=True)
+        if not keep:
+            with tempfile.TemporaryDirectory() as td:
+                filename = 'spec.sp'
+                logger.info("Running SPEC using temporary file")
+                self.results = self.nml.run(spec_command=self.exe,
+                                            filename=filename, force=True)
+        else:
+            filename = 'spec{:05}.sp'.format(self.counter)
+            logger.info("Running SPEC using filename " + filename)
+            self.results = self.nml.run(spec_command=self.exe,
+                                        filename=filename, force=True)
+
         logger.info("SPEC run complete.")
         self.counter += 1
         self.need_to_run_code = False
